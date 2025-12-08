@@ -454,6 +454,7 @@ class TestPurchaseReceipt(IntegrationTestCase):
 		# Check if Original PR updated
 		self.assertEqual(pr.items[0].returned_qty, 2)
 		self.assertEqual(pr.per_returned, 40)
+		self.assertEqual(returned.status, "Return")
 
 		from erpnext.controllers.sales_and_purchase_return import make_return_doc
 
@@ -1899,7 +1900,7 @@ class TestPurchaseReceipt(IntegrationTestCase):
 		data = frappe.get_all(
 			"Stock Ledger Entry",
 			filters={"voucher_no": pr_return.name, "docstatus": 1},
-			fields=["SUM(stock_value_difference) as stock_value_difference"],
+			fields=[{"SUM": "stock_value_difference", "as": "stock_value_difference"}],
 		)[0]
 
 		self.assertEqual(abs(data["stock_value_difference"]), 400.00)
@@ -2149,7 +2150,7 @@ class TestPurchaseReceipt(IntegrationTestCase):
 		return_pr.items[0].stock_qty = 0.0
 		return_pr.submit()
 
-		self.assertEqual(return_pr.status, "To Bill")
+		self.assertEqual(return_pr.status, "Return")
 
 		pi = make_purchase_invoice(return_pr.name)
 		pi.submit()
@@ -4534,6 +4535,141 @@ class TestPurchaseReceipt(IntegrationTestCase):
 				self.assertEqual(row.debit, 1000)
 			if row.account == expense_contra_account:
 				self.assertEqual(row.credit, 1000)
+
+	def test_repost_gl_entries(self):
+		from erpnext.stock.doctype.stock_entry.test_stock_entry import make_stock_entry
+
+		item = "Test Item for Repost GL Entries"
+		make_item(item, {"is_stock_item": 1})
+		company = "_Test Company with perpetual inventory"
+
+		account = "Reposting Adjustment - TCP1"
+		if not frappe.db.exists("Account", account):
+			frappe.get_doc(
+				{
+					"doctype": "Account",
+					"account_name": "Reposting Adjustment",
+					"parent_account": "Stock Expenses - TCP1",
+					"company": company,
+					"is_group": 0,
+					"account_type": "Expense Account",
+				}
+			).insert()
+
+		se = make_stock_entry(
+			item_code=item,
+			qty=10,
+			rate=100,
+			company=company,
+			target="Stores - TCP1",
+		)
+
+		gl_entries = get_gl_entries(se.doctype, se.name)
+		for row in gl_entries:
+			self.assertTrue(row.account in ["Stock In Hand - TCP1", "Stock Adjustment - TCP1"])
+
+		se.items[0].db_set("expense_account", account)
+		se.reload()
+
+		repost_doc = frappe.get_doc(
+			{
+				"doctype": "Repost Item Valuation",
+				"based_on": "Transaction",
+				"voucher_type": se.doctype,
+				"voucher_no": se.name,
+				"posting_date": se.posting_date,
+				"posting_time": se.posting_time,
+				"company": se.company,
+				"repost_only_accounting_ledgers": 1,
+			}
+		)
+
+		repost_doc.submit()
+
+		gl_entries = get_gl_entries(se.doctype, se.name)
+		for row in gl_entries:
+			self.assertTrue(row.account in ["Stock In Hand - TCP1", account])
+
+	def test_lcv_for_repack_entry(self):
+		from erpnext.stock.doctype.landed_cost_voucher.test_landed_cost_voucher import (
+			create_landed_cost_voucher,
+		)
+		from erpnext.stock.doctype.stock_entry.test_stock_entry import make_stock_entry
+
+		for item in [
+			"Potatoes Raw Material Item",
+			"Fries Finished Goods Item",
+		]:
+			create_item(item)
+
+		pr = make_purchase_receipt(
+			item_code="Potatoes Raw Material Item",
+			warehouse="_Test Warehouse - _TC",
+			qty=100,
+			rate=50,
+		)
+
+		wh1 = create_warehouse("WH A1", company=pr.company)
+		wh2 = create_warehouse("WH A2", company=pr.company)
+
+		ste = make_stock_entry(
+			purpose="Repack",
+			source="_Test Warehouse - _TC",
+			item_code="Potatoes Raw Material Item",
+			qty=100,
+			company=pr.company,
+			do_not_save=1,
+		)
+
+		ste.append(
+			"items",
+			{
+				"item_code": "Fries Finished Goods Item",
+				"qty": 50,
+				"t_warehouse": wh1,
+			},
+		)
+
+		ste.append(
+			"items",
+			{
+				"item_code": "Fries Finished Goods Item",
+				"qty": 50,
+				"t_warehouse": wh2,
+			},
+		)
+
+		ste.insert()
+		ste.submit()
+		ste.reload()
+
+		for row in ste.items:
+			if row.t_warehouse:
+				self.assertEqual(row.valuation_rate, 50)
+
+		sles = frappe.get_all(
+			"Stock Ledger Entry",
+			filters={"voucher_type": ste.doctype, "voucher_no": ste.name, "actual_qty": (">", 0)},
+			pluck="stock_value_difference",
+		)
+
+		self.assertEqual(sles, [2500.0, 2500.0])
+
+		create_landed_cost_voucher("Purchase Receipt", pr.name, pr.company, charges=2000 * -1)
+
+		ste.reload()
+
+		for row in ste.items:
+			if row.t_warehouse:
+				self.assertEqual(row.valuation_rate, 30)
+
+		sles = frappe.get_all(
+			"Stock Ledger Entry",
+			filters={"voucher_type": ste.doctype, "voucher_no": ste.name, "actual_qty": (">", 0)},
+			pluck="stock_value_difference",
+		)
+
+		self.assertEqual(sles, [1500.0, 1500.0])
 
 
 def prepare_data_for_internal_transfer():

@@ -45,7 +45,7 @@ frappe.ui.form.on("BOM", {
 			return {
 				query: "erpnext.manufacturing.doctype.bom.bom.item_query",
 				filters: {
-					is_stock_item: 1,
+					is_stock_item: !frm.doc.is_phantom_bom,
 				},
 			};
 		});
@@ -183,7 +183,7 @@ frappe.ui.form.on("BOM", {
 			);
 		}
 
-		if (frm.doc.docstatus == 1) {
+		if (frm.doc.docstatus == 1 && !frm.doc.is_phantom_bom) {
 			frm.add_custom_button(
 				__("Work Order"),
 				function () {
@@ -460,10 +460,12 @@ frappe.ui.form.on("BOM", {
 		);
 
 		has_template_rm.forEach((d) => {
+			let bom_qty = dialog.fields_dict.qty?.value || 1;
+
 			dialog.fields_dict.items.df.data.push({
 				item_code: d.item_code,
 				variant_item_code: "",
-				qty: (d.qty / frm.doc.quantity) * (dialog.fields_dict.qty.value || 1),
+				qty: flt(d.qty / frm.doc.quantity) * flt(bom_qty),
 				source_warehouse: d.source_warehouse,
 				operation: d.operation,
 			});
@@ -528,6 +530,14 @@ frappe.ui.form.on("BOM", {
 		}
 
 		frm.set_value("process_loss_qty", qty);
+	},
+
+	is_phantom_bom(frm) {
+		frm.doc.item = "";
+		frm.doc.uom = "";
+		frm.doc.quantity = 1;
+		frm.doc.items = undefined;
+		frm.refresh();
 	},
 });
 

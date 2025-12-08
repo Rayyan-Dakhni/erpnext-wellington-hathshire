@@ -587,8 +587,13 @@
    "type": "Link"
   }
  ],
+<<<<<<< HEAD
  "modified": "2025-11-17 07:33:37.717519",
  "modified_by": "shaikhashir871@gmail.com",
+=======
+ "modified": "2025-11-17 14:35:00.910131",
+ "modified_by": "Administrator",
+>>>>>>> b58c4edd5d3ed7018699e2a405be3d5757727af0
  "module": "Accounts",
  "name": "Accounting",
  "number_cards": [
@@ -623,6 +628,7 @@
   }
  ],
  "sequence_id": 2.0,
+<<<<<<< HEAD
  "shortcuts": [
   {
    "color": "Grey",
@@ -680,6 +686,9 @@
    "type": "Dashboard"
   }
  ],
+=======
+ "shortcuts": [],
+>>>>>>> b58c4edd5d3ed7018699e2a405be3d5757727af0
  "title": "Accounting",
  "type": "Workspace"
 }

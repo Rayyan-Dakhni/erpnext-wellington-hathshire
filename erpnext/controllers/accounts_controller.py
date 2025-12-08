@@ -7,6 +7,7 @@ from collections import defaultdict
 
 import frappe
 from frappe import _, bold, qb, throw
+from frappe.contacts.doctype.address.address import get_address_display
 from frappe.model.workflow import get_workflow_name, is_transition_condition_satisfied
 from frappe.query_builder import Criterion, DocType
 from frappe.query_builder.custom import ConstantColumn
@@ -39,6 +40,8 @@ from erpnext.accounts.doctype.pricing_rule.utils import (
 )
 from erpnext.accounts.general_ledger import get_round_off_account_and_cost_center
 from erpnext.accounts.party import (
+	PURCHASE_TRANSACTION_TYPES,
+	SALES_TRANSACTION_TYPES,
 	get_party_account,
 	get_party_account_currency,
 	get_party_gle_currency,
@@ -134,6 +137,11 @@ class AccountsController(TransactionBase):
 			)
 			if self.doctype in relevant_docs:
 				self.set_payment_schedule()
+
+	def on_update(self):
+		from erpnext.controllers.taxes_and_totals import process_item_wise_tax_details
+
+		process_item_wise_tax_details(self)
 
 	def remove_bundle_for_non_stock_invoices(self):
 		has_sabb = False
@@ -303,6 +311,31 @@ class AccountsController(TransactionBase):
 		self.set_default_letter_head()
 		self.validate_company_in_accounting_dimension()
 		self.validate_party_address_and_contact()
+		self.validate_company_linked_addresses()
+
+	def validate_company_linked_addresses(self):
+		address_fields = []
+		if self.doctype in ("Quotation", "Sales Order", "Delivery Note", "Sales Invoice"):
+			address_fields = ["dispatch_address_name", "company_address"]
+		elif self.doctype in ("Purchase Order", "Purchase Receipt", "Purchase Invoice", "Supplier Quotation"):
+			address_fields = ["billing_address", "shipping_address"]
+
+		for field in address_fields:
+			address = self.get(field)
+			if address and not frappe.db.exists(
+				"Dynamic Link",
+				{
+					"parent": address,
+					"parenttype": "Address",
+					"link_doctype": "Company",
+					"link_name": self.company,
+				},
+			):
+				frappe.throw(
+					_("{0} does not belong to the {1}.").format(
+						_(self.meta.get_label(field)), bold(self.company)
+					)
+				)
 
 	def set_default_letter_head(self):
 		if hasattr(self, "letter_head") and not self.letter_head:
@@ -357,6 +390,24 @@ class AccountsController(TransactionBase):
 
 		for _doctype in repost_doctypes:
 			dt = frappe.qb.DocType(_doctype)
+
+			cancelled_entries = (
+				frappe.qb.from_(dt)
+				.select(dt.parent, dt.parenttype)
+				.where((dt.voucher_type == self.doctype) & (dt.voucher_no == self.name) & (dt.docstatus == 2))
+				.run(as_dict=True)
+			)
+
+			if cancelled_entries:
+				entries = "<br>".join([get_link_to_form(d.parenttype, d.parent) for d in cancelled_entries])
+
+				frappe.throw(
+					_(
+						"The following cancelled repost entries exist for <b>{0}</b>:<br><br>{1}<br><br>"
+						"Kindly delete these entries before continuing."
+					).format(self.name, entries)
+				)
+
 			rows = (
 				frappe.qb.from_(dt)
 				.select(dt.name, dt.parent, dt.parenttype)
@@ -1159,7 +1210,6 @@ class AccountsController(TransactionBase):
 		if self.get("taxes_and_charges"):
 			if not tax_master_doctype:
 				tax_master_doctype = self.meta.get_field("taxes_and_charges").options
-
 			self.extend("taxes", get_taxes_and_charges(tax_master_doctype, self.get("taxes_and_charges")))
 
 	def append_taxes_from_item_tax_template(self):
@@ -1289,7 +1339,10 @@ class AccountsController(TransactionBase):
 			"Payment Entry",
 		]:
 			set_balance_in_account_currency(
-				gl_dict, account_currency, self.get("conversion_rate"), self.company_currency
+				gl_dict,
+				account_currency,
+				args.get("transaction_exchange_rate") or self.get("conversion_rate"),
+				self.company_currency,
 			)
 
 		# Update details in transaction currency
@@ -1297,7 +1350,8 @@ class AccountsController(TransactionBase):
 			gl_dict.update(
 				{
 					"transaction_currency": self.get("currency") or self.company_currency,
-					"transaction_exchange_rate": self.get("conversion_rate", 1),
+					"transaction_exchange_rate": args.get("transaction_exchange_rate")
+					or self.get("conversion_rate", 1),
 					"debit_in_transaction_currency": self.get_value_in_transaction_currency(
 						account_currency, gl_dict, "debit"
 					),
@@ -2303,7 +2357,7 @@ class AccountsController(TransactionBase):
 
 	def validate_party(self):
 		party_type, party = self.get_party()
-		validate_party_frozen_disabled(party_type, party)
+		validate_party_frozen_disabled(self.company, party_type, party)
 
 	def get_party(self):
 		party_type = None
@@ -2932,6 +2986,104 @@ class AccountsController(TransactionBase):
 		for x in gl_entries:
 			x["transaction_currency"] = self.currency
 			x["transaction_exchange_rate"] = self.get("conversion_rate") or 1
+
+	def after_mapping(self, source_doc):
+		self.set_discount_amount_after_mapping(source_doc)
+
+	def set_discount_amount_after_mapping(self, source_doc):
+		"""
+		Ensures that Additional Discount Amount is not copied repeatedly
+		for multiple mappings of a single source transaction.
+		"""
+
+		# source and target doctypes should both be buying / selling
+		for transaction_types in (PURCHASE_TRANSACTION_TYPES, SALES_TRANSACTION_TYPES):
+			if self.doctype in transaction_types and source_doc.doctype in transaction_types:
+				break
+
+		else:
+			return
+
+		# ensure both doctypes have discount_amount field
+		if not self.meta.get_field("discount_amount") or not source_doc.meta.get_field("discount_amount"):
+			return
+
+		# ensure discount_amount is set in source doc
+		if not source_doc.discount_amount:
+			return
+
+		# ensure additional_discount_percentage is not set in the source doc
+		if source_doc.get("additional_discount_percentage"):
+			return
+
+		item_doctype = self.meta.get_field("items").options
+		doctype_table = frappe.qb.DocType(self.doctype)
+		item_table = frappe.qb.DocType(item_doctype)
+
+		is_same_doctype = self.doctype == source_doc.doctype
+		is_return = self.get("is_return") and is_same_doctype
+
+		if is_same_doctype and not is_return:
+			# should never happen
+			# you don't map to the same doctype without it being a return
+			return
+
+		query = (
+			frappe.qb.from_(doctype_table)
+			.where(doctype_table.docstatus == 1)
+			.where(doctype_table.discount_amount != 0)
+			.select(Sum(doctype_table.discount_amount))
+		)
+
+		if is_return:
+			query = query.where(doctype_table.is_return == 1).where(
+				doctype_table.return_against == source_doc.name
+			)
+
+		else:
+			item_meta = frappe.get_meta(item_doctype)
+			reference_fieldname = next(
+				(
+					row.fieldname
+					for row in item_meta.fields
+					if row.fieldtype == "Link"
+					and row.options == source_doc.doctype
+					and not row.get("is_custom_field")
+				),
+				None,
+			)
+
+			if not reference_fieldname:
+				return
+
+			query = query.where(
+				doctype_table.name.isin(
+					frappe.qb.from_(item_table)
+					.select(item_table.parent)
+					.where(item_table[reference_fieldname] == source_doc.name)
+					.distinct()
+				)
+			)
+
+		result = query.run()
+		if not result:
+			return
+
+		discount_already_applied = result[0][0]
+		if not discount_already_applied:
+			return
+
+		if is_return:
+			# returns have negative discount
+			discount_already_applied *= -1
+
+		discount_amount = max(source_doc.discount_amount - discount_already_applied, 0)
+		if discount_amount and is_return:
+			discount_amount *= -1
+
+		self.discount_amount = flt(discount_amount, self.precision("discount_amount"))
+
+		self.calculate_taxes_and_totals()
 
 
 @frappe.whitelist()
@@ -3998,35 +4150,47 @@ def check_if_child_table_updated(child_table_before_update, child_table_after_up
 	return False
 
 
-def merge_taxes(source_taxes, target_doc):
-	from erpnext.accounts.doctype.pos_invoice_merge_log.pos_invoice_merge_log import (
-		update_item_wise_tax_detail,
-	)
-
-	existing_taxes = target_doc.get("taxes") or []
-	idx = 1
-	for tax in source_taxes:
+def merge_taxes(source_doc, target_doc):
+	tax_map = {}
+	for tax in source_doc.get("taxes") or []:
 		found = False
-		for t in existing_taxes:
+		for t in target_doc.get("taxes") or []:
 			if t.account_head == tax.account_head and t.cost_center == tax.cost_center:
 				t.tax_amount = flt(t.tax_amount) + flt(tax.tax_amount_after_discount_amount)
 				t.base_tax_amount = flt(t.base_tax_amount) + flt(tax.base_tax_amount_after_discount_amount)
-				update_item_wise_tax_detail(t, tax)
+				tax_map[tax.name] = t
 				found = True
 
 		if not found:
 			tax.charge_type = "Actual"
-			tax.idx = idx
-			idx += 1
 			tax.included_in_print_rate = 0
 			tax.dont_recompute_tax = 1
-			tax.row_id = ""
+			tax.row_id = None
+			tax.idx = None
 			tax.tax_amount = tax.tax_amount_after_discount_amount
 			tax.base_tax_amount = tax.base_tax_amount_after_discount_amount
-			tax.item_wise_tax_detail = tax.item_wise_tax_detail
-			existing_taxes.append(tax)
+			tax_map[tax.name] = target_doc.append("taxes", tax)
 
-	target_doc.set("taxes", existing_taxes)
+	item_map = {d._old_name: d for d in target_doc.get("items") if d.get("_old_name")}
+
+	item_tax_details = target_doc.get("_item_wise_tax_details") or []
+	for row in source_doc.get("item_wise_tax_details"):
+		item = item_map.get(row.item_row)
+		tax = tax_map.get(row.tax_row)
+		if not (item and tax):
+			continue
+
+		item_tax_details.append(
+			frappe._dict(
+				item=item,
+				tax=tax,
+				amount=row.amount,
+				rate=row.rate,
+				taxable_amount=row.taxable_amount,
+			)
+		)
+
+	target_doc._item_wise_tax_details = item_tax_details
 
 
 @erpnext.allow_regional
@@ -4047,3 +4211,130 @@ def update_gl_dict_with_regional_fields(doc, gl_dict):
 def update_gl_dict_with_app_based_fields(doc, gl_dict):
 	for method in frappe.get_hooks("update_gl_dict_with_app_based_fields", default=[]):
 		frappe.get_attr(method)(doc, gl_dict)
+
+
+@frappe.whitelist()
+def get_missing_company_details(doctype, docname):
+	from frappe.contacts.doctype.address.address import get_address_display_list
+
+	company = frappe.db.get_value(doctype, docname, "company")
+	if doctype == "Purchase Order":
+		company_address = frappe.db.get_value(doctype, docname, "billing_address")
+	else:
+		company_address = frappe.db.get_value(doctype, docname, "company_address")
+
+	company_details = frappe.get_value(
+		"Company", company, ["company_logo", "website", "phone_no", "email"], as_dict=True
+	)
+
+	required_fields = [
+		company_details.get("company_logo"),
+		company_details.get("phone_no"),
+		company_details.get("email"),
+	]
+
+	if not all(required_fields) and not frappe.has_permission("Company", "write", throw=False):
+		frappe.msgprint(
+			_(
+				"Some required Company details are missing. You don't have permission to update them. Please contact your System Manager."
+			)
+		)
+		return
+
+	if not company_address and not frappe.has_permission(doctype, "write", throw=False):
+		frappe.msgprint(
+			_(
+				"Company Address is missing. You don't have permission to update it. Please contact your System Manager."
+			)
+		)
+		return
+
+	address_display_list = get_address_display_list("Company", company)
+	address_line = address_display_list[0].get("address_line1") if address_display_list else ""
+
+	required_fields.append(company_address)
+	required_fields.append(address_line)
+
+	if all(required_fields):
+		return False
+	return {
+		"company_logo": company_details.get("company_logo"),
+		"website": company_details.get("website"),
+		"phone_no": company_details.get("phone_no"),
+		"email": company_details.get("email"),
+		"address_line": address_line,
+		"company": company,
+		"company_address": company_address,
+		"name": docname,
+	}
+
+
+@frappe.whitelist()
+def update_company_master_and_address(current_doctype, name, company, details):
+	from frappe.utils import validate_email_address
+
+	if isinstance(details, str):
+		details = frappe.parse_json(details)
+
+	if details.get("email"):
+		validate_email_address(details.get("email"), throw=True)
+
+	company_fields = ["company_logo", "website", "phone_no", "email"]
+	company_fields_to_update = {field: details.get(field) for field in company_fields if details.get(field)}
+
+	if company_fields_to_update:
+		frappe.db.set_value("Company", company, company_fields_to_update)
+
+	company_address = details.get("company_address")
+	if details.get("address_line1"):
+		address_doc = frappe.get_doc(
+			{
+				"doctype": "Address",
+				"address_title": details.get("address_title"),
+				"address_type": details.get("address_type"),
+				"address_line1": details.get("address_line1"),
+				"address_line2": details.get("address_line2"),
+				"city": details.get("city"),
+				"state": details.get("state"),
+				"pincode": details.get("pincode"),
+				"country": details.get("country"),
+				"is_your_company_address": 1,
+				"links": [{"link_doctype": "Company", "link_name": company}],
+			}
+		)
+		address_doc.insert()
+		company_address = address_doc.name
+
+	update_doc_company_address(current_doctype, name, company_address, details)
+
+
+def update_doc_company_address(current_doctype, docname, company_address, details):
+	if not company_address:
+		return
+
+	address_field_map = {
+		"Purchase Order": ("billing_address", "billing_address_display"),
+		"Sales Invoice": ("company_address", "company_address_display"),
+		"Delivery Note": ("company_address", "company_address_display"),
+		"POS Invoice": ("company_address", "company_address_display"),
+	}
+
+	address_field, display_field = address_field_map.get(
+		current_doctype, ("company_address", "company_address_display")
+	)
+
+	current_display = frappe.db.get_value(current_doctype, docname, display_field)
+
+	if current_display and not details.get("address_line1"):
+		return
+
+	from frappe.query_builder import DocType
+
+	DocType = DocType(current_doctype)
+
+	(
+		frappe.qb.update(DocType)
+		.set(getattr(DocType, address_field), company_address)
+		.set(getattr(DocType, display_field), get_address_display(company_address))
+		.where(DocType.name == docname)
+	).run()

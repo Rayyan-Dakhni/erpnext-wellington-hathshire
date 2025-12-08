@@ -1,9 +1,9 @@
 // Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and Contributors
 // License: GNU General Public License v3. See license.txt
 
-frappe.query_reports["Profit and Loss Statement"] = $.extend({}, erpnext.financial_statements);
+const PL_REPORT_NAME = "Profit and Loss Statement";
 
-erpnext.utils.add_dimensions("Profit and Loss Statement", 10);
+frappe.query_reports[PL_REPORT_NAME] = $.extend({}, erpnext.financial_statements);
 
 //frappe.query_reports["Profit and Loss Statement"]["filters"].push(
 //	{
@@ -37,4 +37,5 @@ erpnext.utils.add_dimensions("Profit and Loss Statement", 10);
 //	}
 //);
 
-frappe.query_reports["Profit and Loss Statement"]["export_hidden_cols"] = true;
+
+frappe.query_reports[PL_REPORT_NAME]["export_hidden_cols"] = true;

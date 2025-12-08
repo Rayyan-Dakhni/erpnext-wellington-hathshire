@@ -433,7 +433,7 @@ class JournalEntry(AccountsController):
 			if (
 				d.reference_type == "Asset"
 				and d.reference_name
-				and d.account_type == "Depreciation"
+				and frappe.get_cached_value("Account", d.account, "root_type") == "Expense"
 				and d.debit
 			):
 				asset = frappe.get_cached_doc("Asset", d.reference_name)
@@ -1699,6 +1699,9 @@ def get_account_details_and_party_type(account, date, company, debit=None, credi
 		"party_type": party_type,
 		"account_type": account_details.account_type,
 		"account_currency": account_details.account_currency or company_currency,
+		"bank_account": (
+			frappe.db.get_value("Bank Account", {"account": account, "company": company}) or None
+		),
 		# The date used to retreive the exchange rate here is the date passed in
 		# as an argument to this function. It is assumed to be the date on which the balance is sought
 		"exchange_rate": get_exchange_rate(
@@ -1754,7 +1757,7 @@ def get_exchange_rate(
 
 		# The date used to retreive the exchange rate here is the date passed
 		# in as an argument to this function.
-		elif (not exchange_rate or flt(exchange_rate) == 1) and account_currency and posting_date:
+		elif (not flt(exchange_rate) or flt(exchange_rate) == 1) and account_currency and posting_date:
 			exchange_rate = get_exchange_rate(account_currency, company_currency, posting_date)
 	else:
 		exchange_rate = 1

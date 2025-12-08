@@ -40,6 +40,13 @@ frappe.ui.form.on("Company", {
 			return { filters: { selling: 1 } };
 		});
 
+		frm.set_query("default_sales_contact", function (doc) {
+			return {
+				query: "frappe.contacts.doctype.contact.contact.contact_query",
+				filters: { link_doctype: "Company", link_name: doc.name },
+			};
+		});
+
 		frm.set_query("default_buying_terms", function () {
 			return { filters: { buying: 1 } };
 		});
@@ -50,6 +57,15 @@ frappe.ui.form.on("Company", {
 					warehouse_type: "Transit",
 					is_group: 0,
 					company: frm.doc.company_name,
+				},
+			};
+		});
+
+		frm.set_query("default_warehouse_for_sales_return", function () {
+			return {
+				filters: {
+					company: frm.doc.name,
+					is_group: 0,
 				},
 			};
 		});
@@ -258,7 +274,7 @@ erpnext.company.setup_queries = function (frm) {
 			["default_payable_account", { root_type: "Liability", account_type: "Payable" }],
 			["default_expense_account", { root_type: "Expense" }],
 			["default_income_account", { root_type: "Income" }],
-			["round_off_account", { root_type: "Expense" }],
+			["round_off_account", { root_type: ["in", ["Expense", "Income"]] }],
 			["round_off_for_opening", { root_type: "Liability", account_type: "Round Off for Opening" }],
 			["write_off_account", { root_type: "Expense" }],
 			["default_deferred_expense_account", {}],

@@ -15,7 +15,11 @@ from frappe.utils import add_months, cint, formatdate, get_first_day, get_link_t
 from frappe.utils.nestedset import NestedSet, rebuild_tree
 
 from erpnext.accounts.doctype.account.account import get_account_currency
+from erpnext.accounts.doctype.financial_report_template.financial_report_template import (
+	sync_financial_report_templates,
+)
 from erpnext.setup.setup_wizard.operations.taxes_setup import setup_taxes_and_charges
+from erpnext.stock.utils import check_pending_reposting
 
 
 class Company(NestedSet):
@@ -28,6 +32,7 @@ class Company(NestedSet):
 		from frappe.types import DF
 
 		abbr: DF.Data
+		accounts_frozen_till_date: DF.Date | None
 		accumulated_depreciation_account: DF.Link | None
 		allow_account_creation_against_child_company: DF.Check
 		asset_received_but_not_billed: DF.Link | None
@@ -56,6 +61,7 @@ class Company(NestedSet):
 		default_deferred_revenue_account: DF.Link | None
 		default_discount_account: DF.Link | None
 		default_expense_account: DF.Link | None
+		default_fg_warehouse: DF.Link | None
 		default_finance_book: DF.Link | None
 		default_holiday_list: DF.Link | None
 		default_in_transit_warehouse: DF.Link | None
@@ -66,8 +72,11 @@ class Company(NestedSet):
 		default_payable_account: DF.Link | None
 		default_provisional_account: DF.Link | None
 		default_receivable_account: DF.Link | None
+		default_sales_contact: DF.Link | None
+		default_scrap_warehouse: DF.Link | None
 		default_selling_terms: DF.Link | None
 		default_warehouse_for_sales_return: DF.Link | None
+		default_wip_warehouse: DF.Link | None
 		depreciation_cost_center: DF.Link | None
 		depreciation_expense_account: DF.Link | None
 		disposal_account: DF.Link | None
@@ -96,6 +105,7 @@ class Company(NestedSet):
 		registration_details: DF.Code | None
 		reporting_currency: DF.Link | None
 		rgt: DF.Int
+		role_allowed_for_frozen_entries: DF.Link | None
 		round_off_account: DF.Link | None
 		round_off_cost_center: DF.Link | None
 		round_off_for_opening: DF.Link | None
@@ -110,6 +120,7 @@ class Company(NestedSet):
 		transactions_annual_history: DF.Code | None
 		unrealized_exchange_gain_loss_account: DF.Link | None
 		unrealized_profit_loss_account: DF.Link | None
+		valuation_method: DF.Literal["FIFO", "Moving Average", "LIFO"]
 		website: DF.Data | None
 		write_off_account: DF.Link | None
 	# end: auto-generated types
@@ -143,6 +154,7 @@ class Company(NestedSet):
 		return exists
 
 	def validate(self):
+		old_doc = self.get_doc_before_save()
 		self.update_default_account = False
 		if self.is_new():
 			self.update_default_account = True
@@ -160,6 +172,33 @@ class Company(NestedSet):
 		self.validate_parent_company()
 		self.set_reporting_currency()
 		self.validate_inventory_account_settings()
+		self.cant_change_valuation_method()
+		self.validate_pending_reposts(old_doc)
+
+	def cant_change_valuation_method(self):
+		doc_before_save = self.get_doc_before_save()
+		if not doc_before_save:
+			return
+
+		previous_valuation_method = doc_before_save.get("valuation_method")
+
+		if previous_valuation_method and previous_valuation_method != self.valuation_method:
+			# check if there are any stock ledger entries against items
+			# which does not have it's own valuation method
+			sle = frappe.db.sql(
+				"""select name from `tabStock Ledger Entry` sle
+				where exists(select name from tabItem
+					where name=sle.item_code and (valuation_method is null or valuation_method='')) and sle.company=%s limit 1
+			""",
+				self.name,
+			)
+
+			if sle:
+				frappe.throw(
+					_(
+						"Can't change the valuation method, as there are transactions against some items which do not have its own valuation method"
+					)
+				)
 
 	def validate_inventory_account_settings(self):
 		doc_before_save = self.get_doc_before_save()
@@ -294,6 +333,7 @@ class Company(NestedSet):
 		):
 			if not frappe.local.flags.ignore_chart_of_accounts:
 				frappe.flags.country_change = True
+				sync_financial_report_templates(self.chart_of_accounts, self.existing_company)
 				self.create_default_accounts()
 				self.create_default_warehouses()
 
@@ -561,6 +601,11 @@ class Company(NestedSet):
 				"Company", self.parent_company, ["reporting_currency"]
 			)
 			self.reporting_currency = parent_reporting_currency
+
+	def validate_pending_reposts(self, old_doc):
+		if old_doc and old_doc.accounts_frozen_till_date != self.accounts_frozen_till_date:
+			if self.accounts_frozen_till_date:
+				check_pending_reposting(self.accounts_frozen_till_date, self.name)
 
 	def set_default_accounts(self):
 		default_accounts = {

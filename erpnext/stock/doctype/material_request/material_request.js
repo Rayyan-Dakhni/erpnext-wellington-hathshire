@@ -105,6 +105,7 @@ frappe.ui.form.on("Material Request", {
 		frm.events.make_custom_buttons(frm);
 		frm.toggle_reqd("customer", frm.doc.material_request_type == "Customer Provided");
 		prevent_past_schedule_dates(frm);
+		frm.trigger("set_warehouse_label");
 	},
 
 	transaction_date(frm) {
@@ -346,6 +347,9 @@ frappe.ui.form.on("Material Request", {
 					label: __("For Warehouse"),
 					options: "Warehouse",
 					reqd: 1,
+					get_query: function () {
+						return { filters: { company: frm.doc.company } };
+					},
 				},
 				{ fieldname: "qty", fieldtype: "Float", label: __("Quantity"), reqd: 1, default: 1 },
 				{
@@ -495,6 +499,7 @@ frappe.ui.form.on("Material Request", {
 			method: "erpnext.stock.doctype.material_request.material_request.raise_work_orders",
 			args: {
 				material_request: frm.doc.name,
+				company: frm.doc.company,
 			},
 			freeze: true,
 			callback: function (r) {
@@ -510,6 +515,23 @@ frappe.ui.form.on("Material Request", {
 		if (frm.doc.material_request_type !== "Material Transfer" && frm.doc.set_from_warehouse) {
 			frm.set_value("set_from_warehouse", "");
 		}
+
+		frm.trigger("set_warehouse_label");
+	},
+
+	set_warehouse_label(frm) {
+		let warehouse_label =
+			frm.doc.material_request_type === "Material Transfer" ? "Target Warehouse" : "Warehouse";
+		if (frm.doc.material_request_type === "Material Issue") {
+			warehouse_label = "From Warehouse";
+		}
+
+		frm.fields_dict["items"].grid.update_docfield_property("warehouse", "label", __(warehouse_label));
+
+		warehouse_label = "Set " + warehouse_label;
+		frm.set_df_property("set_warehouse", "label", __(warehouse_label));
+
+		refresh_field("items");
 	},
 });
 
