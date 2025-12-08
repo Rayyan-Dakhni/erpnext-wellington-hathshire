@@ -9,6 +9,10 @@
  "field_order": [
   "account",
   "account_type",
+  "sub_account",
+  "date",
+  "from_account",
+  "to_account",
   "col_break1",
   "bank_account",
   "party_type",
@@ -23,6 +27,7 @@
   "exchange_rate",
   "sec_break1",
   "debit_in_account_currency",
+  "debit_copy",
   "debit",
   "col_break2",
   "credit_in_account_currency",
@@ -127,14 +132,11 @@
    "label": "Amount"
   },
   {
-   "bold": 1,
    "columns": 2,
    "fieldname": "debit_in_account_currency",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Debit",
-   "options": "account_currency",
-   "print_hide_if_no_value": 1
+   "options": "account_currency"
   },
   {
    "bold": 1,
@@ -153,14 +155,12 @@
    "fieldtype": "Column Break"
   },
   {
-   "bold": 1,
    "columns": 2,
    "fieldname": "credit_in_account_currency",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Credit",
    "options": "account_currency",
-   "print_hide_if_no_value": 1
+   "print_hide": 1
   },
   {
    "bold": 1,
@@ -281,13 +281,46 @@
    "options": "advance_voucher_type",
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "sub_account",
+   "fieldtype": "Select",
+   "label": "Sub account",
+   "options": "Admin fee\nAdministration fee\nBroker fee\nBrokerage fee\nBrokerage fee 1\nBrokerage fee 2\nCash\nCommitment fee\nCommitmnet fee\nExtension amount\nExtension fee\nExtension proceeds\nFeb 1 payment\nFeb payment\nFirst mortgage payout\nFirst mtg payment\nFrancesca Bruno TFSA\nFudns sent to lawyer\nFunds advacned to lawyer\nFunds advanced to lawyer\nFunds disbursed to client\nFunds received\nFunds received back\nFunds received from Olympia\nFunds sent to borrower\nFunds sent to lawyer\nFunds to lawyer\nFunds to payout first mortgage\nFunds transferred to 1077932\nGeneroso Bruno TFSA\nGianpiero Pisciotta TFSA\nGiovina Di Matteo TFSA\nGiulia Dippolito TFSA\nHelio Veiga RRSP\nIan Shoub RRSP\nIan Shoub TFSA\nInsurance\nInvestment account 1\nInvestment account 2\nIuliu Szabo TFSA\nJan payment\nJanety Santeramo TFSA\nJanice Genova TFSA\nJill Hernandez RRSP\nJohn Simmen (RRSP)\nJordan Applebaum RRSP\nKarin Schuster TFSA\nKim Pak (Non-registered)\nKrysia Mussakowski TFSA\nKsenia Kotova part 1\nKsenia Kotova part 2\nLegal fee\nLena Bellissimo RRIF\nLinda Simmen (Non-registered)\nLIRA\nLorenzo Bellissimo RRIF\nLucia Di Matteo RRSP\nLuigi Dippolito TFSA\nMariya Iqbal TFSA\nMark Dominichiello\nMatthew Genova RRSP\nMatthew Gneova TFSA\nMaya Dominelli\nMelissa Rubinoff TFSA\nMoraven Consulting Inc.\nNeelam Sharma RRSP\nNita Jobanputra LIRA\nNita Jobanputra RRSP\nOriginaiton fee\nOrigination fee\nOther\nOutstanding payments on first\nPart 1\nPart 2\nPart 3\nPart 4\nPer diem\nPeter Guido RRSP\nPrepaid interest\nPrepaid interest on first\nPrepaid interest on second\nPrincipal\nPrincipal for 225 Milestone\nPrincipal for 45 Wellington\nPrincipal funds received\nPrincipal paydown\nPrincipal paydown received\nProceeds advanced to lawyer\nProceeds disbrused to lawyer\nProfessional Fees\nPurushottam Sharma RRSP\nPurushottam Sharma TFSA\nRachel Rubinoff TFSA\nRenewal fee\nRetainer disbursed\nRetainer received\nRetainer recevied\nRetainer sent\nRetainer sent to lawyer\nRetiner received\nRevenue\nRobert Kerzner TFSA\nRRSP\nSamantha Kerzner FHSA\nSamantha Kerzner TFSA\nSanjay Jobanputra RRSP\nSean O'Leary TFSA\nShauna Merkur TFSA\nShrimati Naipaul TFSA\nSita Naipaul (non registered)\nSita Naipaul (personal)\nSita Naipaul TFSA\nSteven Bellissimo TFSA\nSydney kerzner TFSA\nTeresa Luchetta (personal)\nThird party insurance\nTotal extension amount\nTotal funds sent to lawyer\nTracy Coutu RRSP\nTransferred to 1077932\nVeronica Astone TFSA\nVictor Biderman (RRIF)\nViggolupo\nViggolupo (Anna Maria)\nVince Genova TFSA\nVivian Di Matteo TFSA"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "print_hide": 1
+  },
+  {
+   "fieldname": "from_account",
+   "fieldtype": "Text",
+   "in_list_view": 1,
+   "label": "From Account",
+   "print_hide": 1
+  },
+  {
+   "fieldname": "to_account",
+   "fieldtype": "Text",
+   "in_standard_filter": 1,
+   "label": "To Account",
+   "print_hide": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "debit_copy",
+   "fieldtype": "Currency",
+   "label": "Debit Copy",
+   "options": "account_currency"
   }
  ],
  "idx": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-27 13:48:32.805100",
- "modified_by": "Administrator",
+ "modified": "2025-12-04 13:57:28.597131",
+ "modified_by": "shaikhashir871@gmail.com",
  "module": "Accounts",
  "name": "Journal Entry Account",
  "naming_rule": "Random",

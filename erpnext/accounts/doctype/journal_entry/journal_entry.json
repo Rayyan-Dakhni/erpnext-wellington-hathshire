@@ -95,7 +95,7 @@
    "label": "Entry Type",
    "oldfieldname": "voucher_type",
    "oldfieldtype": "Select",
-   "options": "Journal Entry\nInter Company Journal Entry\nBank Entry\nCash Entry\nCredit Card Entry\nDebit Note\nCredit Note\nContra Entry\nExcise Entry\nWrite Off Entry\nOpening Entry\nDepreciation Entry\nAsset Disposal\nPeriodic Accounting Entry\nExchange Rate Revaluation\nExchange Gain Or Loss\nDeferred Revenue\nDeferred Expense",
+   "options": "Journal Entry\nInter Company Journal Entry\nBank Entry\nCash Entry\nCredit Card Entry\nDebit Note\nCredit Note\nContra Entry\nExcise Entry\nWrite Off Entry\nOpening Entry\nDepreciation Entry\nAsset Disposal\nPeriodic Accounting Entry\nExchange Rate Revaluation\nExchange Gain Or Loss\nDeferred Revenue\nDeferred Expense\nDebit\nCredit",
    "reqd": 1,
    "search_index": 1
   },
@@ -498,7 +498,7 @@
   {
    "fieldname": "from_template",
    "fieldtype": "Link",
-   "label": "From Template",
+   "label": "Choose Template",
    "no_copy": 1,
    "options": "Journal Entry Template",
    "print_hide": 1,
@@ -600,8 +600,8 @@
    "table_fieldname": "payment_entries"
   }
  ],
- "modified": "2025-09-29 13:05:46.982277",
- "modified_by": "Administrator",
+ "modified": "2025-12-02 06:10:21.944192",
+ "modified_by": "shaikhashir871@gmail.com",
  "module": "Accounts",
  "name": "Journal Entry",
  "naming_rule": "By \"Naming Series\" field",

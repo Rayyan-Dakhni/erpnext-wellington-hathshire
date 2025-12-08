@@ -66,14 +66,6 @@
    "type": "Link"
   },
   {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Stock",
-   "link_count": 0,
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
@@ -233,7 +225,7 @@
    "type": "Link"
   }
  ],
- "modified": "2025-07-02 14:12:28.407612",
+ "modified": "2025-11-10 10:24:07.614651",
  "modified_by": "Administrator",
  "module": "Setup",
  "name": "Home",
@@ -244,7 +236,7 @@
  "quick_lists": [],
  "restrict_to_domain": "",
  "roles": [],
- "sequence_id": 1.0,
+ "sequence_id": 2.0,
  "shortcuts": [
   {
    "label": "Item",

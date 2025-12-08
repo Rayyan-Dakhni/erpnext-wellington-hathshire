@@ -1,5 +1,5 @@
 app_name = "erpnext"
-app_title = "ERPNext"
+app_title = "Accounting & Finance"
 app_publisher = "Frappe Technologies Pvt. Ltd."
 app_description = """ERP made simple"""
 app_icon = "fa fa-th"
@@ -8,7 +8,7 @@ app_email = "hello@frappe.io"
 app_license = "GNU General Public License (v3)"
 source_link = "https://github.com/frappe/erpnext"
 app_logo_url = "/assets/erpnext/images/erpnext-logo.svg"
-app_home = "/app/home"
+app_home = "/app/journal-entry"
 
 add_to_apps_screen = [
 	{
