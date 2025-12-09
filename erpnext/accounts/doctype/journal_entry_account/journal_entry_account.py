@@ -26,10 +26,6 @@ class JournalEntryAccount(Document):
 		credit_in_account_currency: DF.Currency
 		date: DF.Date | None
 		debit: DF.Currency
-<<<<<<< HEAD
-=======
-		debit_copy: DF.Currency
->>>>>>> 314a81b685164c416e08405f5708a4cb612397fa
 		debit_in_account_currency: DF.Currency
 		exchange_rate: DF.Float
 		from_account: DF.Text | None
