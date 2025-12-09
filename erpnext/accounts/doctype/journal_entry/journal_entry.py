@@ -90,7 +90,7 @@ class JournalEntry(AccountsController):
 		total_credit: DF.Currency
 		total_debit: DF.Currency
 		user_remark: DF.SmallText | None
-		voucher_type: DF.Literal["Journal Entry", "Inter Company Journal Entry", "Bank Entry", "Cash Entry", "Credit Card Entry", "Debit Note", "Credit Note", "Contra Entry", "Excise Entry", "Write Off Entry", "Opening Entry", "Depreciation Entry", "Asset Disposal", "Periodic Accounting Entry", "Exchange Rate Revaluation", "Exchange Gain Or Loss", "Deferred Revenue", "Deferred Expense"]
+		voucher_type: DF.Literal["Journal Entry", "Inter Company Journal Entry", "Bank Entry", "Cash Entry", "Credit Card Entry", "Debit Note", "Credit Note", "Contra Entry", "Excise Entry", "Write Off Entry", "Opening Entry", "Depreciation Entry", "Asset Disposal", "Periodic Accounting Entry", "Exchange Rate Revaluation", "Exchange Gain Or Loss", "Deferred Revenue", "Deferred Expense", "Debit", "Credit"]
 		write_off_amount: DF.Currency
 		write_off_based_on: DF.Literal["Accounts Receivable", "Accounts Payable"]
 	# end: auto-generated types

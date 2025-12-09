@@ -9,6 +9,8 @@
  "engine": "InnoDB",
  "field_order": [
   "entry_type_and_date",
+  "from_template",
+  "user_remark",
   "is_system_generated",
   "title",
   "voucher_type",
@@ -33,7 +35,6 @@
   "section_break99",
   "cheque_no",
   "cheque_date",
-  "user_remark",
   "column_break99",
   "total_debit",
   "total_credit",
@@ -96,12 +97,14 @@
    "label": "Entry Type",
    "oldfieldname": "voucher_type",
    "oldfieldtype": "Select",
-   "options": "Journal Entry\nInter Company Journal Entry\nBank Entry\nCash Entry\nCredit Card Entry\nDebit Note\nCredit Note\nContra Entry\nExcise Entry\nWrite Off Entry\nOpening Entry\nDepreciation Entry\nAsset Disposal\nPeriodic Accounting Entry\nExchange Rate Revaluation\nExchange Gain Or Loss\nDeferred Revenue\nDeferred Expense",
+   "options": "Journal Entry\nInter Company Journal Entry\nBank Entry\nCash Entry\nCredit Card Entry\nDebit Note\nCredit Note\nContra Entry\nExcise Entry\nWrite Off Entry\nOpening Entry\nDepreciation Entry\nAsset Disposal\nPeriodic Accounting Entry\nExchange Rate Revaluation\nExchange Gain Or Loss\nDeferred Revenue\nDeferred Expense\nDebit\nCredit",
+   "reqd": 1,
    "search_index": 1
   },
   {
    "fieldname": "naming_series",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Series",
    "no_copy": 1,
    "oldfieldname": "naming_series",
@@ -603,7 +606,7 @@
    "table_fieldname": "payment_entries"
   }
  ],
- "modified": "2025-12-09 08:10:00.461241",
+ "modified": "2025-12-08 09:35:36.613512",
  "modified_by": "shaikhashir871@gmail.com",
  "module": "Accounts",
  "name": "Journal Entry",

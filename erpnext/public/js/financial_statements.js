@@ -292,12 +292,12 @@ function get_filters() {
 			default: frappe.defaults.get_user_default("Company"),
 			reqd: 1,
 		},
-		{
-			fieldname: "finance_book",
-			label: __("Finance Book"),
-			fieldtype: "Link",
-			options: "Finance Book",
-		},
+		//{
+		//	fieldname: "finance_book",
+		//	label: __("Finance Book"),
+		//	fieldtype: "Link",
+		//	options: "Finance Book",
+		//},
 		{
 			fieldname: "filter_based_on",
 			label: __("Filter Based On"),
@@ -371,34 +371,34 @@ function get_filters() {
 		// If you are modifying this array such that the presentation_currency object
 		// is no longer the last object, please make adjustments in cash_flow.js
 		// accordingly.
-		{
-			fieldname: "presentation_currency",
-			label: __("Currency"),
-			fieldtype: "Select",
-			options: erpnext.get_presentation_currency_list(),
-		},
-		{
-			fieldname: "cost_center",
-			label: __("Cost Center"),
-			fieldtype: "MultiSelectList",
-			get_data: function (txt) {
-				return frappe.db.get_link_options("Cost Center", txt, {
-					company: frappe.query_report.get_filter_value("company"),
-				});
-			},
-			options: "Cost Center",
-		},
-		{
-			fieldname: "project",
-			label: __("Project"),
-			fieldtype: "MultiSelectList",
-			get_data: function (txt) {
-				return frappe.db.get_link_options("Project", txt, {
-					company: frappe.query_report.get_filter_value("company"),
-				});
-			},
-			options: "Project",
-		},
+		//{
+		//	fieldname: "presentation_currency",
+		//	label: __("Currency"),
+		//	fieldtype: "Select",
+		//	options: erpnext.get_presentation_currency_list(),
+		//},
+		//{
+		//	fieldname: "cost_center",
+		//	label: __("Cost Center"),
+		//	fieldtype: "MultiSelectList",
+		//	get_data: function (txt) {
+		//		return frappe.db.get_link_options("Cost Center", txt, {
+		//			company: frappe.query_report.get_filter_value("company"),
+		//		});
+		//	},
+		//	options: "Cost Center",
+		//},
+		//{
+		//	fieldname: "project",
+		//	label: __("Project"),
+		//	fieldtype: "MultiSelectList",
+		//	get_data: function (txt) {
+		//		return frappe.db.get_link_options("Project", txt, {
+		//			company: frappe.query_report.get_filter_value("company"),
+		//		});
+		//	},
+		//	options: "Project",
+		//},
 	];
 
 	// Dynamically set 'default' values for fiscal year filters

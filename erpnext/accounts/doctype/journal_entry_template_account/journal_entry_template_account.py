@@ -17,7 +17,7 @@ class JournalEntryTemplateAccount(Document):
 
 		account: DF.Link
 		debit_or_credit: DF.Literal["Debit", "Credit"]
-		from_accpunt: DF.Text | None
+		from_account: DF.Text | None
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data
