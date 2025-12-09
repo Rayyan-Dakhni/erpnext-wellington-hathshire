@@ -32,7 +32,6 @@ class Company(NestedSet):
 		from frappe.types import DF
 
 		abbr: DF.Data
-		accounts_frozen_till_date: DF.Date | None
 		accumulated_depreciation_account: DF.Link | None
 		allow_account_creation_against_child_company: DF.Check
 		asset_received_but_not_billed: DF.Link | None
@@ -43,7 +42,7 @@ class Company(NestedSet):
 		chart_of_accounts: DF.Literal[None]
 		company_description: DF.TextEditor | None
 		company_logo: DF.AttachImage | None
-		company_name: DF.Data
+		company_name: DF.Data | None
 		cost_center: DF.Link | None
 		country: DF.Link
 		create_chart_of_accounts_based_on: DF.Literal["", "Standard Template", "Existing Company"]
@@ -61,7 +60,6 @@ class Company(NestedSet):
 		default_deferred_revenue_account: DF.Link | None
 		default_discount_account: DF.Link | None
 		default_expense_account: DF.Link | None
-		default_fg_warehouse: DF.Link | None
 		default_finance_book: DF.Link | None
 		default_holiday_list: DF.Link | None
 		default_in_transit_warehouse: DF.Link | None
@@ -72,11 +70,8 @@ class Company(NestedSet):
 		default_payable_account: DF.Link | None
 		default_provisional_account: DF.Link | None
 		default_receivable_account: DF.Link | None
-		default_sales_contact: DF.Link | None
-		default_scrap_warehouse: DF.Link | None
 		default_selling_terms: DF.Link | None
 		default_warehouse_for_sales_return: DF.Link | None
-		default_wip_warehouse: DF.Link | None
 		depreciation_cost_center: DF.Link | None
 		depreciation_expense_account: DF.Link | None
 		disposal_account: DF.Link | None
@@ -99,13 +94,10 @@ class Company(NestedSet):
 		purchase_expense_account: DF.Link | None
 		purchase_expense_contra_account: DF.Link | None
 		reconcile_on_advance_payment_date: DF.Check
-		reconciliation_takes_effect_on: DF.Literal[
-			"Advance Payment Date", "Oldest Of Invoice Or Advance", "Reconciliation Date"
-		]
+		reconciliation_takes_effect_on: DF.Literal["Advance Payment Date", "Oldest Of Invoice Or Advance", "Reconciliation Date"]
 		registration_details: DF.Code | None
 		reporting_currency: DF.Link | None
 		rgt: DF.Int
-		role_allowed_for_frozen_entries: DF.Link | None
 		round_off_account: DF.Link | None
 		round_off_cost_center: DF.Link | None
 		round_off_for_opening: DF.Link | None
@@ -120,7 +112,6 @@ class Company(NestedSet):
 		transactions_annual_history: DF.Code | None
 		unrealized_exchange_gain_loss_account: DF.Link | None
 		unrealized_profit_loss_account: DF.Link | None
-		valuation_method: DF.Literal["FIFO", "Moving Average", "LIFO"]
 		website: DF.Data | None
 		write_off_account: DF.Link | None
 	# end: auto-generated types

@@ -58,7 +58,7 @@ class JournalEntry(AccountsController):
 		cheque_date: DF.Date | None
 		cheque_no: DF.Data | None
 		clearance_date: DF.Date | None
-		company: DF.Link
+		company: DF.Link | None
 		difference: DF.Currency
 		due_date: DF.Date | None
 		finance_book: DF.Link | None
@@ -70,12 +70,12 @@ class JournalEntry(AccountsController):
 		letter_head: DF.Link | None
 		mode_of_payment: DF.Link | None
 		multi_currency: DF.Check
-		naming_series: DF.Literal["ACC-JV-.YYYY.-"]
+		naming_series: DF.Literal[None]
 		party_not_required: DF.Check
 		pay_to_recd_from: DF.Data | None
 		payment_order: DF.Link | None
 		periodic_entry_difference_account: DF.Link | None
-		posting_date: DF.Date
+		posting_date: DF.Date | None
 		process_deferred_accounting: DF.Link | None
 		remark: DF.SmallText | None
 		reversal_of: DF.Link | None
