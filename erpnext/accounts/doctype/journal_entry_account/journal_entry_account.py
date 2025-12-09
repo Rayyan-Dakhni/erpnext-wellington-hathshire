@@ -34,6 +34,7 @@ class JournalEntryAccount(Document):
 		exchange_rate: DF.Float
 		from_account: DF.Text | None
 		is_advance: DF.Literal["No", "Yes"]
+		is_tax_withholding_account: DF.Check
 		parent: DF.Data
 		parentfield: DF.Data
 		parenttype: DF.Data
