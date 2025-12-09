@@ -55,7 +55,7 @@
    "type": "Link"
   }
  ],
- "modified": "2025-11-06 15:47:49.653794",
+ "modified": "2025-12-09 15:57:26.973971",
  "modified_by": "Administrator",
  "module": "Subcontracting",
  "name": "Subcontracting",
@@ -65,7 +65,14 @@
  "public": 1,
  "quick_lists": [],
  "restrict_to_domain": "",
- "roles": [],
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
  "sequence_id": 8.0,
  "shortcuts": [
   {

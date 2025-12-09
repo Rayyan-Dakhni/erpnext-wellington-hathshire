@@ -91,12 +91,12 @@
    "default": "Journal Entry",
    "fieldname": "voucher_type",
    "fieldtype": "Select",
+   "hidden": 1,
    "in_standard_filter": 1,
    "label": "Entry Type",
    "oldfieldname": "voucher_type",
    "oldfieldtype": "Select",
    "options": "Journal Entry\nInter Company Journal Entry\nBank Entry\nCash Entry\nCredit Card Entry\nDebit Note\nCredit Note\nContra Entry\nExcise Entry\nWrite Off Entry\nOpening Entry\nDepreciation Entry\nAsset Disposal\nPeriodic Accounting Entry\nExchange Rate Revaluation\nExchange Gain Or Loss\nDeferred Revenue\nDeferred Expense",
-   "reqd": 1,
    "search_index": 1
   },
   {
@@ -120,16 +120,17 @@
   {
    "fieldname": "posting_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Posting Date",
    "no_copy": 1,
    "oldfieldname": "posting_date",
    "oldfieldtype": "Date",
-   "reqd": 1,
    "search_index": 1
   },
   {
    "fieldname": "company",
    "fieldtype": "Link",
+   "hidden": 1,
    "in_standard_filter": 1,
    "label": "Company",
    "oldfieldname": "company",
@@ -137,7 +138,6 @@
    "options": "Company",
    "print_hide": 1,
    "remember_last_selected_value": 1,
-   "reqd": 1,
    "search_index": 1
   },
   {
@@ -287,6 +287,7 @@
    "collapsible": 1,
    "fieldname": "reference",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Reference",
    "options": "fa fa-pushpin"
   },
@@ -387,6 +388,7 @@
    "collapsible": 1,
    "fieldname": "printing_settings",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Printing Settings"
   },
   {
@@ -424,6 +426,7 @@
    "collapsible": 1,
    "fieldname": "addtional_info",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "More Information",
    "oldfieldtype": "Section Break",
    "options": "fa fa-file-text"
@@ -498,7 +501,7 @@
   {
    "fieldname": "from_template",
    "fieldtype": "Link",
-   "label": "From Template",
+   "label": "Choose Template",
    "no_copy": 1,
    "options": "Journal Entry Template",
    "print_hide": 1,
@@ -600,8 +603,8 @@
    "table_fieldname": "payment_entries"
   }
  ],
- "modified": "2025-09-29 13:05:46.982277",
- "modified_by": "Administrator",
+ "modified": "2025-12-09 08:10:00.461241",
+ "modified_by": "shaikhashir871@gmail.com",
  "module": "Accounts",
  "name": "Journal Entry",
  "naming_rule": "By \"Naming Series\" field",
