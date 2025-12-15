@@ -15,8 +15,8 @@
  "label": "Financial Reporting",
  "link_type": "DocType",
  "links": [],
- "modified": "2025-11-26 03:33:06.957855",
- "modified_by": "shaikhashir871@gmail.com",
+ "modified": "2025-12-09 17:28:20.051551",
+ "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Financial Reporting",
  "number_cards": [],
@@ -24,7 +24,14 @@
  "parent_page": "",
  "public": 1,
  "quick_lists": [],
- "roles": [],
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
  "sequence_id": 29.0,
  "shortcuts": [
   {

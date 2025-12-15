@@ -9,6 +9,7 @@
     "dates_section",
     "posting_date",
     "transaction_date",
+    "accounting_entry_date",
     "column_break_avko",
     "fiscal_year",
     "due_date",
@@ -75,6 +76,13 @@
       "label": "Transaction Date",
       "oldfieldname": "transaction_date",
       "oldfieldtype": "Date"
+    },
+    {
+      "fieldname": "accounting_entry_date",
+      "fieldtype": "Date",
+      "in_filter": 1,
+      "in_list_view": 1,
+      "label": "Accounting Entry Date"
     },
     {
       "fieldname": "account",

@@ -22,6 +22,11 @@ def execute(filters=None):
 	if filters and filters.report_template:
 		return FinancialReportEngine().execute(filters)
 
+	# Ensure show_zero_values is True to display all enabled accounts
+	if not filters:
+		filters = {}
+	filters["show_zero_values"] = True
+
 	period_list = get_period_list(
 		filters.from_fiscal_year,
 		filters.to_fiscal_year,
@@ -102,7 +107,8 @@ def execute(filters=None):
 		filters.periodicity, period_list, filters.accumulated_values, company=filters.company
 	)
 
-	chart = get_chart_data(filters, columns, asset, liability, equity, currency)
+	# chart = get_chart_data(filters, columns, asset, liability, equity, currency)
+	chart = None
 
 	report_summary, primitive_summary = get_report_summary(
 		period_list, asset, liability, equity, provisional_profit_loss, currency, filters
@@ -112,6 +118,7 @@ def execute(filters=None):
 		compute_growth_view_data(data, period_list)
 
 	return columns, data, message, chart, report_summary, primitive_summary
+
 
 
 def get_provisional_profit_loss(

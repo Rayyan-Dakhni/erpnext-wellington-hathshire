@@ -23,6 +23,11 @@ def execute(filters=None):
 	if filters and filters.report_template:
 		return FinancialReportEngine().execute(filters)
 
+	# Ensure show_zero_values is True to display all enabled accounts
+	if not filters:
+		filters = {}
+	filters["show_zero_values"] = True
+
 	period_list = get_period_list(
 		filters.from_fiscal_year,
 		filters.to_fiscal_year,
