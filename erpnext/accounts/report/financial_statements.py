@@ -377,7 +377,7 @@ def get_accounts(company, root_type):
 		"""
 		select name, account_number, parent_account, lft, rgt, root_type, report_type, account_name, include_in_gross, account_type, is_group, lft, rgt
 		from `tabAccount`
-		where company=%s and root_type=%s order by lft""",
+		where company=%s and root_type=%s and disabled = 0 order by lft""",
 		(company, root_type),
 		as_dict=True,
 	)

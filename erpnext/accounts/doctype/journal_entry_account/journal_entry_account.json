@@ -9,6 +9,10 @@
  "field_order": [
   "account",
   "account_type",
+  "sub_account",
+  "from_account",
+  "to_account",
+  "date",
   "col_break1",
   "bank_account",
   "party_type",
@@ -34,7 +38,6 @@
   "reference_detail_no",
   "advance_voucher_type",
   "advance_voucher_no",
-  "is_tax_withholding_account",
   "col_break3",
   "is_advance",
   "user_remark",
@@ -284,18 +287,32 @@
    "search_index": 1
   },
   {
-   "default": "0",
-   "fieldname": "is_tax_withholding_account",
-   "fieldtype": "Check",
-   "label": "Is Tax Withholding Account",
-   "read_only": 1
+   "fieldname": "sub_account",
+   "fieldtype": "Select",
+   "label": "Sub Account",
+   "options": "Admin fee\nAdministration fee\nBroker fee\nBrokerage fee\nBrokerage fee 1\nBrokerage fee 2\nCash\nCommitment fee\nCommitmnet fee\nExtension amount\nExtension fee\nExtension proceeds\nFeb 1 payment\nFeb payment\nFirst mortgage payout\nFirst mtg payment\nFrancesca Bruno TFSA\nFudns sent to lawyer\nFunds advacned to lawyer\nFunds advanced to lawyer\nFunds disbursed to client\nFunds received\nFunds received back\nFunds received from Olympia\nFunds sent to borrower\nFunds sent to lawyer\nFunds to lawyer\nFunds to payout first mortgage\nFunds transferred to 1077932\nGeneroso Bruno TFSA\nGianpiero Pisciotta TFSA\nGiovina Di Matteo TFSA\nGiulia Dippolito TFSA\nHelio Veiga RRSP\nIan Shoub RRSP\nIan Shoub TFSA\nInsurance\nInvestment account 1\nInvestment account 2\nIuliu Szabo TFSA\nJan payment\nJanety Santeramo TFSA\nJanice Genova TFSA\nJill Hernandez RRSP\nJohn Simmen (RRSP)\nJordan Applebaum RRSP\nKarin Schuster TFSA\nKim Pak (Non-registered)\nKrysia Mussakowski TFSA\nKsenia Kotova part 1\nKsenia Kotova part 2\nLegal fee\nLena Bellissimo RRIF\nLinda Simmen (Non-registered)\nLIRA\nLorenzo Bellissimo RRIF\nLucia Di Matteo RRSP\nLuigi Dippolito TFSA\nMariya Iqbal TFSA\nMark Dominichiello\nMatthew Genova RRSP\nMatthew Gneova TFSA\nMaya Dominelli\nMelissa Rubinoff TFSA\nMoraven Consulting Inc.\nNeelam Sharma RRSP\nNita Jobanputra LIRA\nNita Jobanputra RRSP\nOriginaiton fee\nOrigination fee\nOther\nOutstanding payments on first\nPart 1\nPart 2\nPart 3\nPart 4\nPer diem\nPeter Guido RRSP\nPrepaid interest\nPrepaid interest on first\nPrepaid interest on second\nPrincipal\nPrincipal for 225 Milestone\nPrincipal for 45 Wellington\nPrincipal funds received\nPrincipal paydown\nPrincipal paydown received\nProceeds advanced to lawyer\nProceeds disbrused to lawyer\nProfessional Fees\nPurushottam Sharma RRSP\nPurushottam Sharma TFSA\nRachel Rubinoff TFSA\nRenewal fee\nRetainer disbursed\nRetainer received\nRetainer recevied\nRetainer sent\nRetainer sent to lawyer\nRetiner received\nRevenue\nRobert Kerzner TFSA\nRRSP\nSamantha Kerzner FHSA\nSamantha Kerzner TFSA\nSanjay Jobanputra RRSP\nSean O'Leary TFSA\nShauna Merkur TFSA\nShrimati Naipaul TFSA\nSita Naipaul (non registered)\nSita Naipaul (personal)\nSita Naipaul TFSA\nSteven Bellissimo TFSA\nSydney kerzner TFSA\nTeresa Luchetta (personal)\nThird party insurance\nTotal extension amount\nTotal funds sent to lawyer\nTracy Coutu RRSP\nTransferred to 1077932\nVeronica Astone TFSA\nVictor Biderman (RRIF)\nViggolupo\nViggolupo (Anna Maria)\nVince Genova TFSA\nVivian Di Matteo TFSA"
+  },
+  {
+   "fieldname": "from_account",
+   "fieldtype": "Text",
+   "label": "From Account"
+  },
+  {
+   "fieldname": "to_account",
+   "fieldtype": "Text",
+   "label": "To Account"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
   }
  ],
  "idx": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-11-27 12:23:33.157655",
- "modified_by": "Administrator",
+ "modified": "2025-12-09 18:32:59.067575",
+ "modified_by": "shaikhashir871@gmail.com",
  "module": "Accounts",
  "name": "Journal Entry Account",
  "naming_rule": "Random",

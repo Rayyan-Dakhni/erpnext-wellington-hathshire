@@ -1341,6 +1341,19 @@ class AccountsController(TransactionBase):
 		gl_dict.update(dimension_dict)
 		gl_dict.update(args)
 
+		# Add fields from Journal Entry Account if item is provided
+		if item:
+			if item.get("date"):
+				gl_dict["accounting_entry_date"] = item.get("date")
+			if item.get("sub_account"):
+				gl_dict["sub_account"] = item.get("sub_account")
+			if item.get("from_account"):
+				gl_dict["from_account"] = item.get("from_account")
+			if item.get("to_account"):
+				gl_dict["to_account"] = item.get("to_account")
+			if item.get("user_remark"):
+				gl_dict["remarks"] = item.get("user_remark") or gl_dict.get("remarks")
+
 		if not account_currency:
 			account_currency = get_account_currency(gl_dict.account)
 

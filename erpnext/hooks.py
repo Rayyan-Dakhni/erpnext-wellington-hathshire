@@ -668,3 +668,32 @@ fields_for_group_similar_items = ["qty", "amount"]
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 ignore_translatable_strings_from = ["frappe"]
+
+
+# fixtures
+fixtures = [
+	# --- Core UI/schema tweaks made via "Customize Form" ---
+    # Only export your own items (prefix your fields/props with "WH_")
+    {"dt": "Custom Field", "filters": []},
+    {"dt": "Property Setter", "filters": []},
+    
+	# --- Scripts (client/server) attached to ERPNext doctypes (JE, GL, etc.) ---
+    {"dt": "Client Script", "filters": []},
+    {"dt": "Server Script", "filters": []},
+	{"dt": "Property Setter", "filters": []},
+     # --- Reports, Print Formats, Workspaces you add for WH ---
+    {"dt": "Report", "filters": []},
+    {"dt": "Print Format", "filters": []},
+    {"dt": "Workspace", "filters": []},
+    
+	{"dt": "Notification", "filters": [["module", "=", "Lending"]]},
+    
+	# --- Optional: Website & Navbar branding (keeps logos/links portable) ---
+    # App/desk/login branding you configured through the UI
+    {"dt": "Website Settings", "filters": [["name", "=", "Website Settings"]]},
+    # {"dt": "Navbar Item", "filters": [["label", "like", "WH%"]]},
+    
+	# --- Optional if you created branded assets/templates ---
+    {"dt": "Letter Head", "filters": [["name", "like", "WH%"]]},
+    {"dt": "Email Template", "filters": [["name", "like", "WH%"]]},
+]

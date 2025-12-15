@@ -83,12 +83,18 @@ def validate_filters(filters):
 
 def get_data(filters):
 	accounts = frappe.db.sql(
-		"""select name, account_number, parent_account, account_name, root_type, report_type, is_group, lft, rgt
+    """
+    select 
+        name, account_number, parent_account, account_name, root_type, 
+        report_type, is_group, lft, rgt
+    from `tabAccount`
+    where company = %s and disabled = 0
+    order by lft
+    """,
+    filters.company,
+    as_dict=True,
+)
 
-		from `tabAccount` where company=%s order by lft""",
-		filters.company,
-		as_dict=True,
-	)
 	company_currency = filters.presentation_currency or erpnext.get_company_currency(filters.company)
 
 	ignore_is_opening = frappe.get_single_value("Accounts Settings", "ignore_is_opening_check_for_reporting")
@@ -125,9 +131,9 @@ def get_data(filters):
 	accumulate_values_into_parents(accounts, accounts_by_name)
 
 	data = prepare_data(accounts, filters, parent_children_map, company_currency)
-	data = filter_out_zero_value_rows(
-		data, parent_children_map, show_zero_values=filters.get("show_zero_values")
-	)
+	# data = filter_out_zero_value_rows(
+	# 	data, parent_children_map, show_zero_values=filters.get("show_zero_values")
+	# )
 
 	return data
 
@@ -415,6 +421,29 @@ def calculate_total_row(accounts, company_currency):
 	return total_row
 
 
+def calculate_balance(account, balance_type):
+	"""
+	Calculate balance as single value considering account type.
+	For Assets/Expenses: Debit is positive, Credit is negative
+	For Liabilities/Equity/Income: Credit is positive, Debit is negative
+	"""
+	if balance_type == "opening":
+		debit = flt(account.get("opening_debit", 0.0))
+		credit = flt(account.get("opening_credit", 0.0))
+	else:  # closing
+		debit = flt(account.get("closing_debit", 0.0))
+		credit = flt(account.get("closing_credit", 0.0))
+	
+	root_type = account.get("root_type", "")
+	
+	# For Asset and Expense accounts: Debit is positive
+	if root_type in ["Asset", "Expense"]:
+		return debit - credit
+	# For Liability, Equity, and Income accounts: Credit is positive
+	else:
+		return credit - debit
+
+
 def accumulate_values_into_parents(accounts, accounts_by_name):
 	for d in reversed(accounts):
 		if d.parent_account:
@@ -431,6 +460,21 @@ def prepare_data(accounts, filters, parent_children_map, company_currency):
 			prepare_opening_closing(d)
 
 		has_value = False
+		
+		# Calculate opening balance (debit - credit, considering account type)
+		opening_balance = calculate_balance(d, "opening")
+		# Calculate closing balance (debit - credit, considering account type)
+		closing_balance = calculate_balance(d, "closing")
+		
+		# Map root_type to category
+		category_map = {
+			"Asset": "Asset",
+			"Liability": "Liability",
+			"Equity": "Equity",
+			"Income": "Revenue",
+			"Expense": "Expense",
+		}
+		
 		row = {
 			"account": d.name,
 			"parent_account": d.parent_account,
@@ -444,11 +488,14 @@ def prepare_data(accounts, filters, parent_children_map, company_currency):
 			"account_name": (
 				f"{d.account_number} - {d.account_name}" if d.account_number else d.account_name
 			),
+			"category": category_map.get(d.root_type, d.root_type),
+			"opening_balance": flt(opening_balance, 3),
+			"debit": flt(d.get("debit", 0.0), 3),
+			"credit": flt(d.get("credit", 0.0), 3),
+			"closing_balance": flt(closing_balance, 3),
 		}
 
-		for key in value_fields:
-			row[key] = flt(d.get(key, 0.0))
-
+		for key in ["debit", "credit", "opening_balance", "closing_balance"]:
 			if abs(row[key]) >= get_zero_cutoff(company_currency):
 				# ignore zero values
 				has_value = True
@@ -470,11 +517,46 @@ def get_columns():
 	return [
 		{
 			"fieldname": "account",
-			"label": _("Account"),
+			"label": _("Main Account Title"),
 			"fieldtype": "Link",
 			"options": "Account",
 			"width": 300,
 		},
+		{
+			"fieldname": "category",
+			"label": _("Category"),
+			"fieldtype": "Data",
+			"width": 120,
+		},
+		{
+			"fieldname": "opening_balance",
+			"label": _("Opening Balance"),
+			"fieldtype": "Currency",
+			"options": "currency",
+			"width": 120,
+		},
+		{
+			"fieldname": "debit",
+			"label": _("Debit"),
+			"fieldtype": "Currency",
+			"options": "currency",
+			"width": 120,
+		},
+		{
+			"fieldname": "credit",
+			"label": _("Credit"),
+			"fieldtype": "Currency",
+			"options": "currency",
+			"width": 120,
+		},
+		{
+			"fieldname": "closing_balance",
+			"label": _("Total"),
+			"fieldtype": "Currency",
+			"options": "currency",
+			"width": 120,
+		},
+		# HIDDEN FIELDS
 		{
 			"fieldname": "acc_name",
 			"label": _("Account Name"),
@@ -495,48 +577,6 @@ def get_columns():
 			"fieldtype": "Link",
 			"options": "Currency",
 			"hidden": 1,
-		},
-		{
-			"fieldname": "opening_debit",
-			"label": _("Opening (Dr)"),
-			"fieldtype": "Currency",
-			"options": "currency",
-			"width": 120,
-		},
-		{
-			"fieldname": "opening_credit",
-			"label": _("Opening (Cr)"),
-			"fieldtype": "Currency",
-			"options": "currency",
-			"width": 120,
-		},
-		{
-			"fieldname": "debit",
-			"label": _("Debit"),
-			"fieldtype": "Currency",
-			"options": "currency",
-			"width": 120,
-		},
-		{
-			"fieldname": "credit",
-			"label": _("Credit"),
-			"fieldtype": "Currency",
-			"options": "currency",
-			"width": 120,
-		},
-		{
-			"fieldname": "closing_debit",
-			"label": _("Closing (Dr)"),
-			"fieldtype": "Currency",
-			"options": "currency",
-			"width": 120,
-		},
-		{
-			"fieldname": "closing_credit",
-			"label": _("Closing (Cr)"),
-			"fieldtype": "Currency",
-			"options": "currency",
-			"width": 120,
 		},
 	]
 

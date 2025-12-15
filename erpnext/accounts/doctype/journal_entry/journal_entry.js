@@ -64,7 +64,7 @@ frappe.ui.form.on("Journal Entry", {
 				function () {
 					frappe.route_options = {
 						voucher_no: frm.doc.name,
-						from_date: frm.doc.posting_date,
+						from_  : frm.doc.posting_date,
 						to_date: moment(frm.doc.modified).format("YYYY-MM-DD"),
 						company: frm.doc.company,
 						finance_book: frm.doc.finance_book,
@@ -282,6 +282,14 @@ erpnext.accounts.JournalEntry = class JournalEntry extends frappe.ui.form.Contro
 			var posting_date = this.frm.doc.posting_date;
 			if (!this.frm.doc.amended_from)
 				this.frm.set_value("posting_date", posting_date || frappe.datetime.get_today());
+			
+			// Add a default empty row with today's date if no accounts exist
+			if (!this.frm.doc.accounts || this.frm.doc.accounts.length === 0) {
+				var row = frappe.model.add_child(this.frm.doc, "Journal Entry Account", "accounts");
+				row.date = frappe.datetime.get_today();
+				frappe.model.set_default_values(row);
+				this.frm.refresh_field("accounts");
+			}
 		}
 	}
 
@@ -399,6 +407,7 @@ erpnext.accounts.JournalEntry = class JournalEntry extends frappe.ui.form.Contro
 	accounts_add(doc, cdt, cdn) {
 		var row = frappe.get_doc(cdt, cdn);
 		row.exchange_rate = 1;
+		row.date = frappe.datetime.get_today();
 		$.each(doc.accounts, function (i, d) {
 			if (d.account && d.party && d.party_type) {
 				row.account = d.account;

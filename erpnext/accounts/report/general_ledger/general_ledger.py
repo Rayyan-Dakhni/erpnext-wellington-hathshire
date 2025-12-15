@@ -168,15 +168,15 @@ def get_gl_entries(filters, accounting_dimensions):
 		else:
 			select_fields += """,remarks"""
 
-	order_by_statement = "order by posting_date, account, creation"
+	order_by_statement = "order by COALESCE(accounting_entry_date, posting_date), account, creation"
 
 	if filters.get("include_dimensions"):
-		order_by_statement = "order by posting_date, creation"
+		order_by_statement = "order by COALESCE(accounting_entry_date, posting_date), creation"
 
 	if filters.get("categorize_by") == "Categorize by Voucher":
-		order_by_statement = "order by posting_date, voucher_type, voucher_no"
+		order_by_statement = "order by COALESCE(accounting_entry_date, posting_date), voucher_type, voucher_no"
 	if filters.get("categorize_by") == "Categorize by Account":
-		order_by_statement = "order by account, posting_date, creation"
+		order_by_statement = "order by account, COALESCE(accounting_entry_date, posting_date), creation"
 
 	if filters.get("include_default_book_entries"):
 		filters["company_fb"] = frappe.get_cached_value(
@@ -193,6 +193,18 @@ def get_gl_entries(filters, accounting_dimensions):
 			"debit_in_transaction_currency, credit_in_transaction_currency, transaction_currency,"
 		)
 
+	# Check if custom columns exist in GL Entry table
+	gl_entry_meta = frappe.get_meta("GL Entry")
+	custom_fields = ""
+	if gl_entry_meta.has_field("accounting_entry_date"):
+		custom_fields += ", accounting_entry_date"
+	if gl_entry_meta.has_field("sub_account"):
+		custom_fields += ", sub_account"
+	if gl_entry_meta.has_field("from_account"):
+		custom_fields += ", from_account"
+	if gl_entry_meta.has_field("to_account"):
+		custom_fields += ", to_account"
+
 	gl_entries = frappe.db.sql(
 		f"""
 		select
@@ -200,7 +212,7 @@ def get_gl_entries(filters, accounting_dimensions):
 			voucher_type, voucher_subtype, voucher_no, {dimension_fields}
 			cost_center, project, {transaction_currency_fields}
 			against_voucher_type, against_voucher, account_currency,
-			against, is_opening, creation {select_fields}
+			against, is_opening, creation, remarks {custom_fields} {select_fields}
 		from `tabGL Entry`
 		where company=%(company)s {get_conditions(filters)}
 		{order_by_statement}
@@ -237,6 +249,15 @@ def get_conditions(filters):
 
 	if filters.get("voucher_no"):
 		conditions.append("voucher_no=%(voucher_no)s")
+
+	if filters.get("sub_account"):
+		conditions.append("sub_account=%(sub_account)s")
+
+	if filters.get("from_account"):
+		conditions.append("from_account=%(from_account)s")
+
+	if filters.get("to_account"):
+		conditions.append("to_account=%(to_account)s")
 
 	if filters.get("against_voucher_no"):
 		conditions.append("against_voucher=%(against_voucher_no)s")
@@ -289,14 +310,14 @@ def get_conditions(filters):
 		or filters.get("categorize_by") in ["Categorize by Account", "Categorize by Party"]
 	):
 		if not ignore_is_opening:
-			conditions.append("(posting_date >=%(from_date)s or is_opening = 'Yes')")
+			conditions.append("(COALESCE(accounting_entry_date, posting_date) >=%(from_date)s or is_opening = 'Yes')")
 		else:
-			conditions.append("posting_date >=%(from_date)s")
+			conditions.append("COALESCE(accounting_entry_date, posting_date) >=%(from_date)s")
 
 	if not ignore_is_opening:
-		conditions.append("(posting_date <=%(to_date)s or is_opening = 'Yes')")
+		conditions.append("(COALESCE(accounting_entry_date, posting_date) <=%(to_date)s or is_opening = 'Yes')")
 	else:
-		conditions.append("posting_date <=%(to_date)s")
+		conditions.append("COALESCE(accounting_entry_date, posting_date) <=%(to_date)s")
 
 	if filters.get("project"):
 		conditions.append("project in %(project)s")
@@ -401,59 +422,15 @@ def get_translated_labels_for_totals():
 
 
 def get_data_with_opening_closing(filters, account_details, accounting_dimensions, gl_entries):
-	def add_total_to_data(totals, key):
-		row = totals[key]
-		row["account"] = labels[key]
-		data.append(row)
-
-	labels = get_translated_labels_for_totals()
-
+	"""Return GL entries as simple flat list without opening/closing grouping."""
 	data = []
-
+	
 	set_bill_no(gl_entries)
-
-	gle_map = initialize_gle_map(gl_entries, filters)
-
-	totals, entries = get_accountwise_gle(filters, accounting_dimensions, gl_entries, gle_map)
-
-	# Opening for filtered account
-	add_total_to_data(totals, "opening")
-
-	if filters.get("categorize_by") != "Categorize by Voucher (Consolidated)":
-		set_opening_closing = (not filters.get("categorize_by") and not filters.get("voucher_no")) or (
-			filters.get("categorize_by") and filters.get("categorize_by") != "Categorize by Voucher"
-		)
-		set_total = filters.get("categorize_by") or not filters.voucher_no
-
-		for acc_dict in gle_map.values():
-			if not acc_dict.entries:
-				continue
-
-			# opening
-			data.append({"debit_in_transaction_currency": None, "credit_in_transaction_currency": None})
-			if set_opening_closing:
-				add_total_to_data(acc_dict.totals, "opening")
-
-			data += acc_dict.entries
-
-			# totals
-			if set_total:
-				add_total_to_data(acc_dict.totals, "total")
-
-			# closing
-			if set_opening_closing:
-				add_total_to_data(acc_dict.totals, "closing")
-
-		data.append({"debit_in_transaction_currency": None, "credit_in_transaction_currency": None})
-	else:
-		data += entries
-
-	# totals
-	add_total_to_data(totals, "total")
-
-	# closing
-	add_total_to_data(totals, "closing")
-
+	
+	# Simply add all GL entries to data without complex grouping
+	for gle in gl_entries:
+		data.append(gle)
+	
 	return data
 
 
@@ -475,6 +452,7 @@ def get_group_by_field(group_by):
 
 
 def initialize_gle_map(gl_entries, filters):
+	"""Initialize GLE map (kept for backwards compatibility but not used in simplified layout)."""
 	gle_map = {}
 	group_by = get_group_by_field(filters.get("categorize_by"))
 
@@ -490,6 +468,7 @@ def initialize_gle_map(gl_entries, filters):
 
 
 def get_accountwise_gle(filters, accounting_dimensions, gl_entries, gle_map):
+	"""Process GL entries (kept for backwards compatibility but not used in simplified layout)."""
 	entries = []
 	consolidated_gle = {}
 	group_by = get_group_by_field(filters.get("categorize_by"))
@@ -678,13 +657,50 @@ def get_columns(filters):
 			"options": "GL Entry",
 			"hidden": 1,
 		},
-		{"label": _("Posting Date"), "fieldname": "posting_date", "fieldtype": "Date", "width": 120},
+		# REQUIRED COLUMNS
 		{
-			"label": _("Account"),
+			"label": _("ID"),
+			"fieldname": "voucher_no",
+			"fieldtype": "Dynamic Link",
+			"options": "voucher_type",
+			"width": 180,
+		},
+		{
+			"label": _("Posting Date"),
+			"fieldname": "posting_date",
+			"fieldtype": "Date",
+			"width": 120,
+		},
+		{
+			"label": _("Description"),
+			"fieldname": "remarks",
+			"fieldtype": "Text",
+			"width": 200,
+		},
+		{
+			"label": _("Main Account Title"),
 			"fieldname": "account",
 			"fieldtype": "Link",
 			"options": "Account",
 			"width": 180,
+		},
+		{
+			"label": _("Sub Account Title"),
+			"fieldname": "sub_account",
+			"fieldtype": "Select",
+			"width": 150,
+		},
+		{
+			"label": _("From Account"),
+			"fieldname": "from_account",
+			"fieldtype": "Text",
+			"width": 150,
+		},
+		{
+			"label": _("To Account"),
+			"fieldname": "to_account",
+			"fieldtype": "Text",
+			"width": 150,
 		},
 		{
 			"label": _("Debit ({0})").format(currency),
@@ -700,99 +716,99 @@ def get_columns(filters):
 			"options": "presentation_currency",
 			"width": 130,
 		},
-		{
-			"label": _("Balance ({0})").format(currency),
-			"fieldname": "balance",
-			"fieldtype": "Currency",
-			"options": "presentation_currency",
-			"width": 130,
-		},
+		# COMMENTED OUT FIELDS
+		# {
+		# 	"label": _("Balance ({0})").format(currency),
+		# 	"fieldname": "balance",
+		# 	"fieldtype": "Currency",
+		# 	"options": "presentation_currency",
+		# 	"width": 130,
+		# },
 	]
 
-	if filters.get("add_values_in_transaction_currency"):
-		columns += [
-			{
-				"label": _("Debit (Transaction)"),
-				"fieldname": "debit_in_transaction_currency",
-				"fieldtype": "Currency",
-				"width": 130,
-				"options": "transaction_currency",
-			},
-			{
-				"label": _("Credit (Transaction)"),
-				"fieldname": "credit_in_transaction_currency",
-				"fieldtype": "Currency",
-				"width": 130,
-				"options": "transaction_currency",
-			},
-			{
-				"label": "Transaction Currency",
-				"fieldname": "transaction_currency",
-				"fieldtype": "Link",
-				"options": "Currency",
-				"width": 70,
-			},
-		]
+	# COMMENTED OUT: Transaction Currency Section
+	# if filters.get("add_values_in_transaction_currency"):
+	# 	columns += [
+	# 		{
+	# 			"label": _("Debit (Transaction)"),
+	# 			"fieldname": "debit_in_transaction_currency",
+	# 			"fieldtype": "Currency",
+	# 			"width": 130,
+	# 			"options": "transaction_currency",
+	# 		},
+	# 		{
+	# 			"label": _("Credit (Transaction)"),
+	# 			"fieldname": "credit_in_transaction_currency",
+	# 			"fieldtype": "Currency",
+	# 			"width": 130,
+	# 			"options": "transaction_currency",
+	# 		},
+	# 		{
+	# 			"label": "Transaction Currency",
+	# 			"fieldname": "transaction_currency",
+	# 			"fieldtype": "Link",
+	# 			"options": "Currency",
+	# 			"width": 70,
+	# 		},
+	# 	]
 
-	columns += [
-		{"label": _("Voucher Type"), "fieldname": "voucher_type", "width": 120},
-		{
-			"label": _("Voucher Subtype"),
-			"fieldname": "voucher_subtype",
-			"fieldtype": "Data",
-			"width": 180,
-		},
-		{
-			"label": _("Voucher No"),
-			"fieldname": "voucher_no",
-			"fieldtype": "Dynamic Link",
-			"options": "voucher_type",
-			"width": 180,
-		},
-		{"label": _("Against Account"), "fieldname": "against", "width": 120},
-		{"label": _("Party Type"), "fieldname": "party_type", "width": 100},
-		{"label": _("Party"), "fieldname": "party", "width": 100},
-	]
+	# COMMENTED OUT: Other transaction details
+	# columns += [
+	# 	{"label": _("Voucher Type"), "fieldname": "voucher_type", "width": 120},
+	# 	{
+	# 		"label": _("Voucher Subtype"),
+	# 		"fieldname": "voucher_subtype",
+	# 		"fieldtype": "Data",
+	# 		"width": 180,
+	# 	},
+	# 	{"label": _("Against Account"), "fieldname": "against", "width": 120},
+	# 	{"label": _("Party Type"), "fieldname": "party_type", "width": 100},
+	# 	{"label": _("Party"), "fieldname": "party", "width": 100},
+	# ]
 
-	supplier_master_name = frappe.db.get_single_value("Buying Settings", "supp_master_name")
-	customer_master_name = frappe.db.get_single_value("Selling Settings", "cust_master_name")
+	# COMMENTED OUT: Supplier/Customer Master Name
+	# supplier_master_name = frappe.db.get_single_value("Buying Settings", "supp_master_name")
+	# customer_master_name = frappe.db.get_single_value("Selling Settings", "cust_master_name")
+	#
+	# if supplier_master_name != "Supplier Name" or customer_master_name != "Customer Name":
+	# 	columns.append(
+	# 		{
+	# 			"label": _("Party Name"),
+	# 			"fieldname": "party_name",
+	# 			"fieldtype": "Data",
+	# 			"width": 150,
+	# 		}
+	# 	)
 
-	if supplier_master_name != "Supplier Name" or customer_master_name != "Customer Name":
-		columns.append(
-			{
-				"label": _("Party Name"),
-				"fieldname": "party_name",
-				"fieldtype": "Data",
-				"width": 150,
-			}
-		)
+	# COMMENTED OUT: Dimensions Section
+	# if filters.get("include_dimensions"):
+	# 	columns.append({"label": _("Project"), "options": "Project", "fieldname": "project", "width": 100})
+	#
+	# 	for dim in get_accounting_dimensions(as_list=False):
+	# 		columns.append(
+	# 			{"label": _(dim.label), "options": dim.label, "fieldname": dim.fieldname, "width": 100}
+	# 		)
+	# 	columns.append(
+	# 		{"label": _("Cost Center"), "options": "Cost Center", "fieldname": "cost_center", "width": 100}
+	# 	)
 
-	if filters.get("include_dimensions"):
-		columns.append({"label": _("Project"), "options": "Project", "fieldname": "project", "width": 100})
+	# COMMENTED OUT: Against Voucher and Bill No
+	# columns.extend(
+	# 	[
+	# 		{"label": _("Against Voucher Type"), "fieldname": "against_voucher_type", "width": 100},
+	# 		{
+	# 			"label": _("Against Voucher"),
+	# 			"fieldname": "against_voucher",
+	# 			"fieldtype": "Dynamic Link",
+	# 			"options": "against_voucher_type",
+	# 			"width": 100,
+	# 		},
+	# 		{"label": _("Supplier Invoice No"), "fieldname": "bill_no", "fieldtype": "Data", "width": 100},
+	# 	]
+	# )
 
-		for dim in get_accounting_dimensions(as_list=False):
-			columns.append(
-				{"label": _(dim.label), "options": dim.label, "fieldname": dim.fieldname, "width": 100}
-			)
-		columns.append(
-			{"label": _("Cost Center"), "options": "Cost Center", "fieldname": "cost_center", "width": 100}
-		)
-
-	columns.extend(
-		[
-			{"label": _("Against Voucher Type"), "fieldname": "against_voucher_type", "width": 100},
-			{
-				"label": _("Against Voucher"),
-				"fieldname": "against_voucher",
-				"fieldtype": "Dynamic Link",
-				"options": "against_voucher_type",
-				"width": 100,
-			},
-			{"label": _("Supplier Invoice No"), "fieldname": "bill_no", "fieldtype": "Data", "width": 100},
-		]
-	)
-
-	if filters.get("show_remarks"):
-		columns.extend([{"label": _("Remarks"), "fieldname": "remarks", "width": 400}])
+	# COMMENTED OUT: Show Remarks
+	# if filters.get("show_remarks"):
+	# 	columns.extend([{"label": _("Remarks"), "fieldname": "remarks", "width": 400}])
 
 	return columns
